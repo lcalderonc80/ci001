@@ -1,12 +1,42 @@
-    
-Route::resource('data', 'ControllerDatos');
+    ==========router web
+	
+  php artisan make:model Post -m
 
- ------------------------------------   
+php artisan migrat
+php artisan make:controller PostController --resource
+*/
+
+Route::resource('posts', 'PostController');
+============================================ model
+class Post extends Model
+{
+    protected $table = 'posts';
+
+    public $fillable = ['title', 'description'];
+}
+
+==================== controller
+
+
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Post;
+
+class PostController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function index()
     {
-        $datos = Data::all();
- 
-        return view("data", compact("datos"));
+        $posts = Post::all();
+
+        return view('posts', ['posts' => $posts]);
     }
 
     /**
@@ -16,56 +46,263 @@ Route::resource('data', 'ControllerDatos');
      */
     public function create()
     {
-        return view('create');
+        //
     }
-    
-    ----
-    php artisan make:controller ControllerDatos --resource
-    
-     protected $table = 'data';
-    ----
-    
-    <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
 
-        <title>Laravel</title>
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+          'title'       => 'required|max:255',
+          'description' => 'required',
+        ]);
 
-        <!-- Fonts -->
-        <link href="https://fonts.googleapis.com/css?family=Nunito:200,600" rel="stylesheet">
+        $post = Post::updateOrCreate(['id' => $request->id], [
+                  'title' => $request->title,
+                  'description' => $request->description
+                ]);
 
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
-    </head>
-    <body>
-        <table class="table">
-            <thead class="thead-dark">
-              <tr>
-                <th scope="col">#</th>
-                <th scope="col">nombre</th>
-                <th scope="col">Email</th>
-                <th><a   href="{{ route('data.create')}}" class="btn btn-success">Nuevo</a></th>
- 
-              </tr>
+        return response()->json(['code'=>200, 'message'=>'Post Created successfully','data' => $post], 200);
+
+    }
+
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show($id)
+    {
+        $post = Post::find($id);
+
+        return response()->json($post);
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function edit($id)
+    {
+        //
+    }
+
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id)
+    {
+        //
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
+    {
+        $post = Post::find($id)->delete();
+
+        return response()->json(['success'=>'Post Deleted successfully']);
+    }
+}
+
+
+================= blade
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.datatables.net/r/bs-3.3.5/jq-2.1.4,dt-1.10.8/datatables.min.css"/>
+
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+  <script src="https://cdn.datatables.net/r/bs-3.3.5/jqc-1.11.3,dt-1.10.8/datatables.min.js"></script>
+
+</head>
+  <style>
+  .alert-message {
+    color: red;
+  }
+</style>
+<body>
+
+<div class="container">
+    <h2 style="margin-top: 12px;" class="alert alert-success">Principal</h2><br>
+     <div class="row">
+       <div class="col-12 text-right">
+         <a href="javascript:void(0)" class="btn btn-success mb-3" id="create-new-post" onclick="addPost()">Agregar Nuevo</a>
+       </div>
+    </div>
+    <div class="row" style="clear: both;margin-top: 18px;">
+        <div class="col-12">
+          <table id="laravel_crud" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Editar</th>
+                    <th>Eliminar</th>
+                </tr>
             </thead>
             <tbody>
-                @foreach ($datos as $item)
-                <tr>
-                    <td>{{ $item->id }}</td>
-                    <td>{{ $item->nombre }}</td>
-                    <td>{{ $item->email }}</td>
-                    <td>
-                        <button type="button" class="btn btn-primary">Editar</button>
-                        <button type="button" class="btn btn-danger">Eliminar</button>
-                    </td>
+                @foreach($posts as $post)
+                <tr id="row_{{$post->id}}">
+                   <td>{{ $post->id  }}</td>
+                   <td>{{ $post->title }}</td>
+                   <td>{{ $post->description }}</td>
+                   <td><a href="javascript:void(0)" data-id="{{ $post->id }}" onclick="editPost(event.target)" class="btn btn-info">Editar</a></td>
+                   <td>
+                    <a href="javascript:void(0)" data-id="{{ $post->id }}" class="btn btn-danger" onclick="deletePost(event.target)">Eliminar</a></td>
                 </tr>
-            @endforeach
+                @endforeach
             </tbody>
           </table>
+       </div>
+    </div>
+</div>
+
+<div class="modal fade" id="post-modal" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h4 class="modal-title"></h4>
+          </div>
+          <div class="modal-body">
+              <form name="userForm" class="form-horizontal">
+                 <input type="hidden" name="post_id" id="post_id">
+                  <div class="form-group">
+                      <label for="name" class="col-sm-2">Título</label>
+                      <div class="col-sm-12">
+                          <input type="text" class="form-control" id="title" name="title" placeholder="Ingrese el Titulo">
+                          <span id="titleError" class="alert-message"></span>
+                      </div>
+                  </div>
   
-       
-    </body>
+                  <div class="form-group">
+                      <label class="col-sm-2">Descripción</label>
+                      <div class="col-sm-12">
+                          <textarea class="form-control" id="description" name="description" placeholder="Enter description" rows="4" cols="50"></textarea>
+                          <span id="descriptionError" class="alert-message"></span>
+                      </div>
+                  </div>
+              </form>
+          </div>
+          <div class="modal-footer">
+            <div class="row">
+                <div class="col-md-6 col-md-offset-3">
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" id="cerrar">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="createPost()">Guardar</button></div>
+                </div>
+          </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    $('#laravel_crud').DataTable();
+  
+    function addPost() {
+      $("#post_id").val('');
+      $('#post-modal').modal('show');
+    }
+  
+    function editPost(event) {
+      var id  = $(event).data("id");
+      let _url = `/posts/${id}`;
+      $('#titleError').text('');
+      $('#descriptionError').text('');
+      
+      $.ajax({
+        url: _url,
+        type: "GET",
+        success: function(response) {
+            if(response) {
+              $("#post_id").val(response.id);
+              $("#title").val(response.title);
+              $("#description").val(response.description);
+              $('#post-modal').modal('show');
+            }
+        }
+      });
+    }
+  
+    function createPost() {
+      var title = $('#title').val();
+      var description = $('#description').val();
+      var id = $('#post_id').val();
+  
+      let _url     = `/posts`;
+      let _token   = $('meta[name="csrf-token"]').attr('content');
+  
+        $.ajax({
+          url: _url,
+          type: "POST",
+          data: {
+            id: id,
+            title: title,
+            description: description,
+            _token: _token
+          },
+          success: function(response) {
+              if(response.code == 200) {
+                if(id != ""){
+                  $("#row_"+id+" td:nth-child(2)").html(response.data.title);
+                  $("#row_"+id+" td:nth-child(3)").html(response.data.description);
+                } else {
+                  $('table tbody').prepend('<tr id="row_'+response.data.id+'"><td>'+response.data.id+'</td><td>'+response.data.title+'</td><td>'+response.data.description+'</td><td><a href="javascript:void(0)" data-id="'+response.data.id+'" onclick="editPost(event.target)" class="btn btn-info">Edit</a></td><td><a href="javascript:void(0)" data-id="'+response.data.id+'" class="btn btn-danger" onclick="deletePost(event.target)">Delete</a></td></tr>');
+                }
+                $('#title').val('');
+                $('#description').val('');
+  
+                $('#post-modal').modal('hide');
+              }
+          },
+          error: function(response) {
+            $('#titleError').text(response.responseJSON.errors.title);
+            $('#descriptionError').text(response.responseJSON.errors.description);
+          }
+        });
+    }
+  
+    function deletePost(event) {
+      var id  = $(event).data("id");
+      let _url = `/posts/${id}`;
+      let _token   = $('meta[name="csrf-token"]').attr('content');
+  
+        $.ajax({
+          url: _url,
+          type: 'DELETE',
+          data: {
+            _token: _token
+          },
+          success: function(response) {
+            $("#row_"+id).remove();
+          }
+        });
+    }
+  
+  </script>
+</body>
 </html>
 
 
